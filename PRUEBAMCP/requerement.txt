@@ -1,0 +1,17 @@
+
+mcp: base necesaria para implementar el servidor y el cliente 
+
+uvicorn: para manejar la comunicacion asincrona de MCP
+
+pydantic: Para validar los esquemas de las herramientas del servidor
+
+chromadb: para el almacenarmiento vectorial, y el control de documnetos procesados.
+
+
+watchdog: libreria estandar para que el proceso detecte 
+
+langchain: facilitan mucho la imprementacion de lrag y la conexion con el modelo de lenguaje
+
+sentence-transformers: para generar embeddings de los documnetos
+
+
