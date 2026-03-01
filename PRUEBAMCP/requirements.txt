@@ -1,0 +1,8 @@
+mcp
+uvicorn
+pydantic
+chromadb
+watchdog
+langchain
+langchain-community
+sentence-transformers

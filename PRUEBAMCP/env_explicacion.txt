@@ -1,3 +1,6 @@
+Para el enviorement 
+
+
 
 mcp: base necesaria para implementar el servidor y el cliente 
 

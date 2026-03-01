@@ -6,34 +6,39 @@
 ### Usar una libreria como watchdog para vigilar la carpeta.
 ### antes de indexar verificar si el nombre del documento ya existe en la coleccion de chromaDb.
 
-
+import os
+import time
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
 
-def crear_indice():
-    # loader = DirectoryLoader(
-    #     path_carpeta, 
-    #     glob="./*.pdf", #ruta a la carpeta de los pdf + el filtro para los pedf
-    #     loader_cls=PyPDFLoader
-    # )
-    
-    loader = PyPDFLoader("/home/mike/Escritorio/agentes/ruedas_suecas.pdf")
-    docs = loader.load()
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    splits = text_splitter.split_documents(docs)
+CHROMA_PATH = "/app/chroma_db"
+DOCS_PATH = "PRUEBAMCP/documentos"
 
-    
+embeddings = OllamaEmbeddings(model="llama3.1:8b-instruct-q4_K_M", base_url="http://host.docker.internal:11434")
+vectorstore = Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings)
 
-    embeddings = OllamaEmbeddings(model="llama3.1:8b-instruct-q4_K_M",base_url="http://localhost:11434")
+class NewDocHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        if not event.is_directory and event.src_path.endswith(".pdf"):
+            fname = os.path.basename(event.src_path)
+            # Requisito: Comprobar si ya ha sido procesado
 
-    vectorstore = Chroma.from_documents(
-        documents=splits, 
-        embedding=embeddings,
-        persist_directory="/home/mike/Escritorio/agentes/chroma_db" 
-    )
-    print("Base de datos guardada")
+            res = vectorstore.get(where={"source": event.src_path})
+            if res and res['ids']:
+                print(f"Archivo {fname} ya existe en ChromaDB. Saltando...")
+                return
+            
+            print(f"Procesando nuevo documento: {fname}")
+            loader = PyPDFLoader(event.src_path)
+            splits = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).split_documents(loader.load())
+            vectorstore.add_documents(splits)
+            print(f"Documento {fname} indexado con éxito.")
 
 if __name__ == "__main__":
-    crear_indice()
+    observer = Observer()
+    observer.schedule(NewDocHandler(), path=DOCS_PATH, recursive=False)
+    observer.start()
