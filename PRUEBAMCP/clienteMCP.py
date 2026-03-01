@@ -1,16 +1,16 @@
 import asyncio
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
-from langchain_mcp_adapters.tools import load_mcp_tools
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from langchain_mcp_adapters.tools import load_mcp_tools
 
 # --- CONFIGURACIÓN DEL SERVIDOR MCP ---
 
 server_params = StdioServerParameters(
-    command="/home/mike/pvc_env/bin/python",
-    args=["/home/mike/Escritorio/agentes/server.py"], # Servidor mcp
+    command="/home/bigdata/miniconda3/envs/mcp/bin/python",
+    args=["/home/bigdata/mcp/PRUEBAMCP/server.py"], # Servidor mcp
     env=None
 )
 async def ainput(prompt: str) -> str:
@@ -19,17 +19,11 @@ async def ainput(prompt: str) -> str:
 
 async def main():
     # Configurar el LLM
-    llm = ChatOllama(
-            #model='ministral-3:14b',
-            #model='llama3-groq-tool-use',
-            model='llama3.1:8b-instruct-q4_K_M',
-            temperature=0,
-            verbose=True,
-            base_url="http://localhost:11434"
-            #base_url="http://10.42.69.229:11434"
-            #base_url="http://192.168.0.30:11434"
-            #base_url="http://10.219.114.51:11434"
-        )
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile", 
+        temperature=0,
+        api_key="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", # O usa os.getenv("GROQ_API_KEY")
+    )
     
     #  conexión MCP
     async with stdio_client(server_params) as (read, write):
@@ -43,7 +37,12 @@ async def main():
 
             # Configurar memoria del agente
             memory = MemorySaver()
-            system_prompt = "PROMT para cumplir con los requisitos 4 y 5, Definir una especialidad, incluir clausulas."
+            system_prompt = """Eres el 'Arquitecto de Sistemas Local'. 
+
+                INSTRUCCIONES:
+                - Para preguntas sobre archivos, utiliza 'consultar_manuales'. 
+                - IMPORTANTE: Si tras usar una herramienta no encuentras la información, NO insistas. Informa al usuario de lo que has encontrado o de que no tienes acceso a ese detalle específico.
+                - No entres en bucles infinitos de consulta."""
             
             app = create_react_agent(
                 llm, 
